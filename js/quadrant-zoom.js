@@ -259,6 +259,97 @@
     }, true /* capture phase */);
   }
 
+  // ── Export PNG — reflects current zoom, filters, and label edits ─────────
+  // Replaces interactions.js export (capture phase blocks the original handler).
+  // Composites: starfield → chart → overlay → header bar, exactly as seen.
+  async function doExport() {
+    await document.fonts.ready;
+
+    const chartCanvas   = document.getElementById('chart');
+    const starCanvas    = document.getElementById('starfield');
+    const overlayCanvas = document.getElementById('overlay-canvas');
+    if (!chartCanvas) return;
+
+    const dpr    = window.devicePixelRatio || 1;
+    const tw     = 1600;                        // target export width (px)
+    const thdr   = 120;                         // header bar height
+    const cw     = chartCanvas.width  / dpr;
+    const ch     = chartCanvas.height / dpr;
+    const sc     = tw / cw;
+    const totalH = thdr + ch * sc;
+
+    const oc  = document.createElement('canvas');
+    oc.width  = tw   * dpr;
+    oc.height = totalH * dpr;
+    const ctx = oc.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // ── Background ──
+    ctx.fillStyle = '#030510';
+    ctx.fillRect(0, 0, tw, totalH);
+
+    // ── Starfield ──
+    if (starCanvas) ctx.drawImage(starCanvas, 0, thdr, cw * sc, ch * sc);
+
+    // ── Chart (includes current zoom, filtered dots, gov rings) ──
+    ctx.drawImage(chartCanvas, 0, thdr, cw * sc, ch * sc);
+
+    // ── Overlay canvas (ripple/hover effects) ──
+    if (overlayCanvas) ctx.drawImage(overlayCanvas, 0, thdr, cw * sc, ch * sc);
+
+    // ── Header bar — reads live DOM values so edits and labels are reflected ──
+    const title    = document.querySelector('.hud-title h1')?.textContent      || 'AI at Fischer Group';
+    const subtitle = document.querySelector('.hud-title-accent')?.textContent  || '';
+    const pretitle = document.querySelector('.hud-title-pre')?.textContent     || '';
+    const dateStr  = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+    // Subtle header tint
+    ctx.fillStyle = 'rgba(3,5,22,0.7)';
+    ctx.fillRect(0, 0, tw, thdr);
+
+    // Pre-title tag
+    ctx.fillStyle = 'rgba(160,175,220,0.5)';
+    ctx.font = '400 11px "DM Mono",monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(pretitle, 40, 28);
+
+    // Main title
+    ctx.fillStyle = '#f0f4ff';
+    ctx.font = '800 32px Syne,sans-serif';
+    ctx.fillText(title, 40, 62);
+
+    // Subtitle (accent colour, immediately after title)
+    const titleWidth = ctx.measureText(title + '  ').width;
+    ctx.fillStyle = '#ff4d6a';
+    ctx.font = '700 32px Syne,sans-serif';
+    ctx.fillText(subtitle, 40 + titleWidth, 62);
+
+    // Footnote
+    ctx.fillStyle = 'rgba(160,175,220,0.45)';
+    ctx.font = '400 11px "DM Mono",monospace';
+    ctx.fillText('Governance scored on IT control \u00B7 standardization \u00B7 observability', 40, 96);
+
+    // Date stamp — right-aligned
+    ctx.textAlign = 'right';
+    ctx.fillText(dateStr, tw - 40, 96);
+    ctx.textAlign = 'left';
+
+    // ── Download ──
+    const link = document.createElement('a');
+    link.download = `fischer-ai-governance-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = oc.toDataURL('image/png');
+    link.click();
+  }
+
+  // Intercept the export button before interactions.js sees the click
+  const exportBtn = document.getElementById('export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', async (e) => {
+      e.stopImmediatePropagation();
+      await doExport();
+    }, true /* capture phase */);
+  }
+
   // ── Firebase sync — source of truth for all edits ────────────────────────
   // localStorage is used only as an instant-render cache on first paint.
   // Firebase is always the canonical state — survives cache clears, domain
