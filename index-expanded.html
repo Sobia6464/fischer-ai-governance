@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Governance Landscape — Expanded View (59 tools)</title>
+<!-- Dependencies: Chart.js 4.4.7 (local), Google Fonts: Syne + DM Mono -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Starfield background canvas -->
+<canvas id="starfield"></canvas>
+
+<!-- Nebula gradient overlays -->
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
+
+<!-- Scan line effect -->
+<div class="scanlines"></div>
+
+<!-- Planet renderer canvas (above chart, below HUD) -->
+<canvas id="planet-canvas"></canvas>
+
+<!-- HUD overlay group — fades in/out together -->
+<div class="hud-overlay" id="hud-overlay">
+  <!-- Floating header -->
+  <header class="hud-header">
+    <div class="hud-title">
+      <div class="hud-title-pre">// AI GOVERNANCE LANDSCAPE — EXPANDED VIEW</div>
+      <h1>AI at Fischer Group</h1>
+      <div class="hud-title-accent">Full Market Landscape (59 tools)</div>
+    </div>
+    <div class="hud-controls">
+      <div class="audio-controls">
+        <button class="hud-btn" id="mute-btn" title="Mute audio">
+          <svg id="mute-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg id="mute-icon-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
+      </div>
+      <div class="gov-controls">
+        <div class="gov-label">How governance is shown</div>
+        <div class="gov-toggle">
+          <button class="gov-btn active" data-mode="ring">Rings</button>
+          <button class="gov-btn" data-mode="glow">Halos</button>
+          <button class="gov-btn" data-mode="size">Scale</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Floating filter bar -->
+  <div class="hud-filter-bar">
+    <button class="hud-btn edit-mode-btn" id="edit-mode-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit
+    </button>
+    <button class="hud-btn filter-open-btn" id="filter-open-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
+      Filters
+    </button>
+    <button class="hud-btn export-btn" id="export-btn">Export PNG</button>
+  </div>
+
+  <!-- Filter Panel — separate floating panel -->
+  <div class="filter-panel" id="filter-panel" style="display:none">
+    <div class="filter-panel-inner">
+      <div class="filter-panel-title">Filters</div>
+      <div class="edit-field">
+        <label class="edit-label">Min Governance Score</label>
+        <input type="range" id="gov-slider" class="edit-slider" min="1" max="10" value="1" step="1">
+        <span class="edit-slider-val" id="slider-value">1</span>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label"><input type="checkbox" id="active-toggle"> Fischer Active Only</label>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Type</label>
+        <select class="filter-select" id="filter-type">
+          <option value="all">All</option>
+          <option value="tool">Tools / Agents</option>
+          <option value="model">Models / Infra</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Quadrant</label>
+        <select class="filter-select" id="filter-quadrant">
+          <option value="all">All</option>
+          <option value="tl">Technical Assistants</option>
+          <option value="tr">Custom-Built Agents</option>
+          <option value="bl">Simple Chat Assistants</option>
+          <option value="br">No-Code Agentic</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Complexity</label>
+        <select class="filter-select" id="filter-complexity">
+          <option value="all">All</option>
+          <option value="high">High Code</option>
+          <option value="low">Low Code</option>
+        </select>
+      </div>
+      <button class="edit-cancel-btn" id="filter-reset" style="width:100%;margin-top:8px">Reset All Filters</button>
+    </div>
+  </div>
+
+  <!-- Full Editor Panel — slides up from bottom-left -->
+  <div class="editor-panel" id="editor-panel" style="display:none">
+    <div class="editor-panel-inner">
+      <!-- Tab bar -->
+      <div class="editor-tabs">
+        <button class="editor-tab active" data-tab="labels">Labels &amp; Text</button>
+        <button class="editor-tab" data-tab="dots">Tools &amp; Agents</button>
+      </div>
+
+      <!-- Tab: Labels & Text -->
+      <div class="editor-tab-content" id="tab-labels">
+        <div class="edit-field">
+          <label class="edit-label">Main Title</label>
+          <input type="text" class="edit-input" id="ed-title" value="AI at Fischer Group">
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">Subtitle</label>
+          <input type="text" class="edit-input" id="ed-subtitle" value="Full Market Landscape (59 tools)">
+        </div>
+        <div class="edit-field">
+          <label class="edit-label">Pre-Title Tag</label>
+          <input type="text" class="edit-input" id="ed-pretitle" value="// AI GOVERNANCE LANDSCAPE — EXPANDED VIEW">
+        </div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label class="edit-label">Top-Left Quadrant</label>
+            <input type="text" class="edit-input" id="ed-ql-tl" value="Technical Assistants">
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Top-Right Quadrant</label>
+            <input type="text" class="edit-input" id="ed-ql-tr" value="Custom-Built Agents">
+          </div>
+        </div>
+        <div class="edit-row">
+          <div class="edit-field">
+            <label class="edit-label">Bottom-Left Quadrant</label>
+            <input type="text" class="edit-input" id="ed-ql-bl" value="Simple Chat Assistants">
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Bottom-Right Quadrant</label>
+            <input type="text" class="edit-input" id="ed-ql-br" value="No-Code Agentic Tools">
+          </div>
+        </div>
+        <div class="edit-field">
+          <label class="edit-label" style="font-style:italic;opacity:0.6">Active badge auto-updates from Fischer Active nodes</label>
+        </div>
+        <button class="edit-save-btn" id="ed-labels-save" style="width:100%;margin-top:12px">Apply Text Changes</button>
+      </div>
+
+      <!-- Tab: Tools & Agents — direct manipulation mode -->
+      <div class="editor-tab-content" id="tab-dots" style="display:none">
+        <div class="dot-list" id="dot-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating bottom legend -->
+  <div class="hud-legend">
+    <div class="legend-items">
+      <div class="legend-item"><div class="legend-dot tool-dot"></div>Tools / Agents</div>
+      <div class="legend-item"><div class="legend-dot model-dot"></div>Models / Infra</div>
+      <div class="legend-item"><div class="legend-dot active-dot"></div>Fischer Active</div>
+      <div class="legend-item">
+        <div class="gov-scale">
+          <span>Gov:</span>
+          <div class="gov-bar-demo"></div>
+          <span>Low &rarr; High</span>
+        </div>
+      </div>
+    </div>
+    <div class="active-badge">Fischer Active: Claude for Excel &middot; Claude for PowerPoint &middot; Web Scraper</div>
+  </div>
+</div>
+
+<!-- Sun Detail Panel — OUTSIDE hud-overlay so it shows regardless -->
+<div class="sun-panel" id="sun-panel" style="display:none">
+  <button class="detail-close" id="sun-close" aria-label="Close sun view">&times;</button>
+  <div class="sun-panel-inner">
+    <div class="sun-panel-title">The Fischer Group</div>
+    <div class="sun-panel-subtitle">Fischer Active Tools &amp; Agents</div>
+    <div class="sun-node-list" id="sun-node-list"></div>
+  </div>
+</div>
+
+<!-- Sound toggle — always visible -->
+<button class="sound-toggle" id="sound-toggle" title="Enable sound">
+  <svg class="sound-icon-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+  <svg class="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+</button>
+
+<!-- Overlay toggle button — always visible -->
+<button class="overlay-toggle" id="overlay-toggle" title="Show controls">
+  <svg class="toggle-icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  <svg class="toggle-icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+</button>
+
+<!-- Full-screen chart -->
+<main class="chart-universe" id="chartArea" role="main" aria-label="AI Governance Chart">
+  <div class="quadrant-labels">
+    <div class="ql tl"><span class="ql-icon">&#9670;</span> Technical Assistants</div>
+    <div class="ql tr"><span class="ql-icon">&#9670;</span> Custom-Built Agents</div>
+    <div class="ql bl"><span class="ql-icon">&#9670;</span> Simple Chat Assistants</div>
+    <div class="ql br"><span class="ql-icon">&#9670;</span> No-Code Agentic Tools</div>
+  </div>
+  <div class="axis-label axis-y-top">HIGH CODE</div>
+  <div class="axis-label axis-y-bottom">LOW CODE</div>
+  <div class="axis-label axis-x-left">ASSISTANT</div>
+  <div class="axis-label axis-x-right">AGENT</div>
+  <canvas id="chart"></canvas>
+  <canvas id="overlay-canvas"></canvas>
+  <div class="empty-state" id="empty-state" style="display:none">No tools match your current filters</div>
+</main>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-type" id="tt-type"></div>
+  <div class="tt-row"><span class="tt-key">Type</span><span class="tt-val" id="tt-x"></span></div>
+  <div class="tt-row"><span class="tt-key">Complexity</span><span class="tt-val" id="tt-y"></span></div>
+  <div class="tt-gov-bar">
+    <div class="tt-gov-label">GOVERNANCE SCORE</div>
+    <div class="tt-gov-track"><div class="tt-gov-fill" id="tt-gov-fill"></div></div>
+    <div class="tt-gov-score" id="tt-gov-score"></div>
+  </div>
+  <div class="tt-gaps" id="tt-gaps"></div>
+</div>
+
+<!-- Detail panel — semi-transparent 3D overlay on right side -->
+<div class="detail-backdrop" id="detail-backdrop"></div>
+<div class="detail-panel" id="detail-panel">
+  <button class="detail-close" id="detail-close" aria-label="Close detail panel">&times;</button>
+  <div class="detail-panel-inner">
+    <!-- View mode -->
+    <div id="detail-view-mode">
+      <div class="detail-name" id="detail-name"></div>
+      <div class="detail-type" id="detail-type"></div>
+      <div class="detail-active-badge" id="detail-active"></div>
+
+      <div class="detail-stats-3d">
+        <div class="stat-card" style="--card-delay: 0.05s">
+          <div class="stat-card-inner">
+            <div class="detail-meta-label">Type</div>
+            <div class="detail-meta-value" id="detail-deployment"></div>
+          </div>
+        </div>
+        <div class="stat-card" style="--card-delay: 0.1s">
+          <div class="stat-card-inner">
+            <div class="detail-meta-label">Complexity</div>
+            <div class="detail-meta-value" id="detail-complexity"></div>
+          </div>
+        </div>
+        <div class="stat-card wide" style="--card-delay: 0.15s">
+          <div class="stat-card-inner">
+            <div class="detail-meta-label">Governance Score</div>
+            <div class="detail-gov-bar"><div class="detail-gov-fill" id="detail-gov-fill"></div></div>
+            <div class="detail-gov-score" id="detail-gov-score"></div>
+          </div>
+        </div>
+        <div class="stat-card wide" style="--card-delay: 0.2s">
+          <div class="stat-card-inner">
+            <div class="detail-meta-label">Gap Analysis</div>
+            <div id="detail-gaps-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional notes — hidden if empty -->
+      <div class="detail-notes-section" id="detail-notes-section" style="display:none">
+        <div class="stat-card wide" style="--card-delay: 0.25s">
+          <div class="stat-card-inner">
+            <div class="detail-meta-label">Additional Notes</div>
+            <div class="detail-notes-text" id="detail-notes-text"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- First-time hint overlay -->
+<div class="hint-overlay" id="hint-overlay">
+  <div class="hint-card">
+    <div class="hint-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+    </div>
+    <div class="hint-text">Click any dot to explore &mdash; use Filters to cut through the noise</div>
+  </div>
+</div>
+
+<!-- Keyboard navigation -->
+<div id="keyboard-nav" aria-label="Chart data points"></div>
+<div id="filter-announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<script src="js/chart.umd.js"></script>
+<script src="js/chart-setup-expanded.js"></script>  <!-- ← expanded dataset, original untouched -->
+<script src="js/audio.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/interactions.js"></script>
+<script src="js/main.js"></script>
+<script src="js/quadrant-zoom.js"></script>         <!-- ← quadrant zoom, expanded view only -->
+</body>
+</html>
