@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI at Fischer Group — The Reality</title>
+<title>AI Governance Landscape — Expanded View (59 tools)</title>
 <!-- Dependencies: Chart.js 4.4.7 (local), Google Fonts: Syne + DM Mono -->
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
@@ -29,9 +29,9 @@
   <!-- Floating header -->
   <header class="hud-header">
     <div class="hud-title">
-      <div class="hud-title-pre">// AI GOVERNANCE LANDSCAPE</div>
+      <div class="hud-title-pre">// AI GOVERNANCE LANDSCAPE — EXPANDED VIEW</div>
       <h1>AI at Fischer Group</h1>
-      <div class="hud-title-accent">The Reality</div>
+      <div class="hud-title-accent">Full Market Landscape (59 tools)</div>
     </div>
     <div class="hud-controls">
       <div class="audio-controls">
@@ -52,7 +52,6 @@
   </header>
 
   <!-- Floating filter bar -->
-  <!-- Slim toolbar -->
   <div class="hud-filter-bar">
     <button class="hud-btn edit-mode-btn" id="edit-mode-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -124,11 +123,11 @@
         </div>
         <div class="edit-field">
           <label class="edit-label">Subtitle</label>
-          <input type="text" class="edit-input" id="ed-subtitle" value="The Reality">
+          <input type="text" class="edit-input" id="ed-subtitle" value="Full Market Landscape (59 tools)">
         </div>
         <div class="edit-field">
           <label class="edit-label">Pre-Title Tag</label>
-          <input type="text" class="edit-input" id="ed-pretitle" value="// AI GOVERNANCE LANDSCAPE">
+          <input type="text" class="edit-input" id="ed-pretitle" value="// AI GOVERNANCE LANDSCAPE — EXPANDED VIEW">
         </div>
         <div class="edit-row">
           <div class="edit-field">
@@ -177,7 +176,7 @@
         </div>
       </div>
     </div>
-    <div class="active-badge">Fischer Active: ChatGPT Agent &middot; Claude Excel/PPT &middot; Web Scraper</div>
+    <div class="active-badge">Fischer Active: Claude for Excel &middot; Claude for PowerPoint &middot; Web Scraper</div>
   </div>
 </div>
 
@@ -199,9 +198,7 @@
 
 <!-- Overlay toggle button — always visible -->
 <button class="overlay-toggle" id="overlay-toggle" title="Show controls">
-  <!-- Eye icon (show) -->
   <svg class="toggle-icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-  <!-- Eye-off icon (hide) -->
   <svg class="toggle-icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
 </button>
 
@@ -295,7 +292,7 @@
     <div class="hint-icon">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
     </div>
-    <div class="hint-text">Click any dot to explore</div>
+    <div class="hint-text">Click any dot to explore &mdash; use Filters to cut through the noise</div>
   </div>
 </div>
 
@@ -304,10 +301,11 @@
 <div id="filter-announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
 <script src="js/chart.umd.js"></script>
-<script src="js/chart-setup.js"></script>
+<script src="js/chart-setup-expanded.js"></script>  <!-- ← expanded dataset, original untouched -->
 <script src="js/audio.js"></script>
 <script src="js/animations.js"></script>
 <script src="js/interactions.js"></script>
 <script src="js/main.js"></script>
+<script src="js/quadrant-zoom.js"></script>         <!-- ← quadrant zoom, expanded view only -->
 </body>
 </html>
