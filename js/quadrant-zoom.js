@@ -334,10 +334,67 @@
     ctx.fillText(dateStr, tw - 40, 96);
     ctx.textAlign = 'left';
 
+    // ── Footer — active filter summary ───────────────────────────────────────
+    const tfooter = 48;
+    // Extend canvas height to fit footer
+    const oc2  = document.createElement('canvas');
+    oc2.width  = oc.width;
+    oc2.height = oc.height + tfooter * dpr;
+    const ctx2 = oc2.getContext('2d');
+    ctx2.scale(dpr, dpr);
+    ctx2.drawImage(oc, 0, 0, tw, totalH); // copy existing content
+
+    // Build filter label list from live DOM
+    const filters = [];
+    const govVal  = parseInt(document.getElementById('gov-slider')?.value || '1');
+    const activeOnly  = document.getElementById('active-toggle')?.checked;
+    const typeVal     = document.getElementById('filter-type')?.value     || 'all';
+    const quadVal     = document.getElementById('filter-quadrant')?.value || 'all';
+    const complexVal  = document.getElementById('filter-complexity')?.value || 'all';
+
+    const quadLabels = { tl:'Technical Assistants', tr:'Custom-Built Agents',
+                         bl:'Simple Chat Assistants', br:'No-Code Agentic Tools' };
+    const typeLabels = { tool:'Tools / Agents', model:'Models / Infra' };
+    const complexLabels = { high:'High Code', low:'Low Code' };
+
+    if (govVal > 1)           filters.push(`Gov \u2265 ${govVal}`);
+    if (activeOnly)           filters.push('Fischer Active Only');
+    if (typeVal !== 'all')    filters.push(`Type: ${typeLabels[typeVal] || typeVal}`);
+    if (quadVal !== 'all')    filters.push(`Quadrant: ${quadLabels[quadVal] || quadVal}`);
+    if (complexVal !== 'all') filters.push(`Complexity: ${complexLabels[complexVal] || complexVal}`);
+
+    const filterText = filters.length
+      ? 'Filters applied: ' + filters.join('  \u00B7  ')
+      : 'Filters: All tools shown';
+
+    // Footer bar
+    ctx2.fillStyle = 'rgba(3,5,22,0.85)';
+    ctx2.fillRect(0, totalH, tw, tfooter);
+
+    // Separator line
+    ctx2.strokeStyle = 'rgba(100,160,255,0.15)';
+    ctx2.lineWidth = 1;
+    ctx2.beginPath(); ctx2.moveTo(0, totalH); ctx2.lineTo(tw, totalH); ctx2.stroke();
+
+    // Filter text
+    ctx2.fillStyle = filters.length ? 'rgba(255,176,32,0.85)' : 'rgba(160,175,220,0.45)';
+    ctx2.font = `400 12px "DM Mono",monospace`;
+    ctx2.textAlign = 'left';
+    ctx2.fillText(filterText, 40, totalH + 29);
+
+    // Visible count
+    const visCount = typeof chartInstance !== 'undefined'
+      ? chartInstance.data.datasets.filter(ds => ds._visible).length : null;
+    if (visCount !== null) {
+      ctx2.fillStyle = 'rgba(160,175,220,0.35)';
+      ctx2.textAlign = 'right';
+      ctx2.fillText(`${visCount} of ${COMPANIES.length} tools`, tw - 40, totalH + 29);
+    }
+
     // ── Download ──
     const link = document.createElement('a');
     link.download = `fischer-ai-governance-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = oc.toDataURL('image/png');
+    link.href = oc2.toDataURL('image/png');
     link.click();
   }
 
