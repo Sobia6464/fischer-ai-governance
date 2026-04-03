@@ -329,8 +329,8 @@ body {
   opacity: 0.5;
 }
 
-/* Filter open button */
-.filter-open-btn {
+/* Filter open button + Search open button */
+.filter-open-btn, .search-open-btn {
   width: auto !important;
   padding: 6px 16px !important;
   font-family: var(--font-mono);
@@ -339,6 +339,11 @@ body {
   gap: 5px;
 }
 .filter-open-btn.active {
+  color: var(--gov-high) !important;
+  border-color: rgba(0, 232, 162, 0.4) !important;
+  box-shadow: 0 0 12px var(--tool-glow) !important;
+}
+.search-open-btn.active {
   color: var(--gov-high) !important;
   border-color: rgba(0, 232, 162, 0.4) !important;
   box-shadow: 0 0 12px var(--tool-glow) !important;
