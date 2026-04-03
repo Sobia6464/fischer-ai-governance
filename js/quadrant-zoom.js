@@ -705,8 +705,10 @@
 
     // Main title
     ctx.fillStyle = '#f0f4ff';
-    ctx.font = '800 32px Syne,sans-serif';
+    ctx.font = '700 32px Syne,sans-serif';
+    ctx.letterSpacing = '1.3px'; // ~0.04em at 32px
     ctx.fillText(title, 40, 62);
+    ctx.letterSpacing = '0px';
 
     // Subtitle (accent colour, immediately after title)
     const titleWidth = ctx.measureText(title + '  ').width;
