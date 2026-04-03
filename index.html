@@ -321,20 +321,21 @@
 </div>
 
 <!-- Black hole — shown when search returns no results -->
-<div id="search-no-results" style="display:none;position:fixed;top:50%;left:50%;
-     transform:translate(-50%,-50%);display:none;flex-direction:column;
-     align-items:center;gap:20px;pointer-events:none;z-index:90">
-  <div style="position:relative;width:120px;height:120px">
-    <div id="bh-orb" style="width:120px;height:120px;border-radius:50%;
-         background:radial-gradient(circle at 38% 35%,#050510 35%,#000 100%);
-         position:absolute"></div>
-    <div id="bh-ring"></div>
-    <div id="bh-glow"></div>
+<div id="search-no-results" style="display:none;position:fixed;inset:0;
+     flex-direction:column;align-items:center;justify-content:center;
+     gap:28px;pointer-events:none;z-index:300">
+  <div id="bh-scene" style="position:relative;width:280px;height:280px;flex-shrink:0">
+    <div id="bh-outer-glow"></div>
+    <div id="bh-disk3"></div>
+    <div id="bh-disk2"></div>
+    <div id="bh-disk1"></div>
+    <div id="bh-particles"></div>
+    <div id="bh-orb"></div>
+    <div id="bh-horizon"></div>
   </div>
-  <div style="color:rgba(160,175,220,0.55);font:400 13px 'DM Mono',monospace;
-              letter-spacing:.08em;text-align:center">
+  <div id="bh-label">
     No results found<br>
-    <span style="font-size:10px;opacity:0.6">Try a shorter or different term</span>
+    <span>Try a shorter or different term</span>
   </div>
 </div>
 

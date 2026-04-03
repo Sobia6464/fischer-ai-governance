@@ -129,41 +129,171 @@
   // Seed the property so isItemVisible() can always read it safely
   if (typeof filterState !== 'undefined') filterState.searchTerm = '';
 
-  // Black hole animation styles
+  // Black hole animation styles — build particle keyframes dynamically
+  const BH_PARTICLE_COUNT = 16;
+  const BH_COLORS = ['rgba(255,160,60,0.9)','rgba(100,190,255,0.9)','rgba(220,140,255,0.9)','rgba(255,220,120,0.85)'];
+  let particleKF = '';
+  for (let i = 0; i < BH_PARTICLE_COUNT; i++) {
+    const a0 = Math.round((i / BH_PARTICLE_COUNT) * 360);
+    const r0 = 95 + (i % 4) * 14; // 95, 109, 123, 137
+    particleKF += `
+    @keyframes bhSpiral${i} {
+      0%   { transform:rotate(${a0}deg) translateX(${r0}px) scale(1);   opacity:0.85; }
+      55%  { opacity:0.55; }
+      88%  { transform:rotate(${a0 + 540}deg) translateX(12px) scale(0.35); opacity:0.2; }
+      100% { transform:rotate(${a0 + 720}deg) translateX(0)   scale(0);    opacity:0; }
+    }`;
+  }
+
   const bhStyles = document.createElement('style');
   bhStyles.textContent = `
+    /* Scene container gives 3-D perspective context */
+    #bh-scene { perspective: 700px; }
+
+    /* Outer nebula glow — pulsing halo behind everything */
+    #bh-outer-glow {
+      position:absolute; width:280px; height:280px;
+      border-radius:50%; top:0; left:0;
+      background:radial-gradient(circle,
+        rgba(60,0,100,0)   30%,
+        rgba(60,0,120,0.22) 52%,
+        rgba(20,0,60,0.35)  68%,
+        rgba(0,0,20,0)      100%);
+      animation:bhOuterPulse 4s ease-in-out infinite;
+    }
+
+    /* Accretion disk 1 — hot orange/gold, fast */
+    #bh-disk1 {
+      position:absolute; width:246px; height:62px;
+      border-radius:50%; top:50%; left:50%;
+      transform:translate(-50%,-50%) rotateX(68deg) rotateZ(0deg);
+      box-shadow:0 0 0 1.5px rgba(255,140,20,0.55),
+                 0 0 14px 5px rgba(255,100,0,0.28),
+                 inset 0 0 0 1px rgba(255,190,80,0.18);
+      animation:bhDisk1 5.5s linear infinite;
+    }
+
+    /* Accretion disk 2 — electric blue, counter-spin */
+    #bh-disk2 {
+      position:absolute; width:214px; height:52px;
+      border-radius:50%; top:50%; left:50%;
+      transform:translate(-50%,-50%) rotateX(75deg) rotateZ(30deg);
+      box-shadow:0 0 0 1px rgba(80,170,255,0.45),
+                 0 0 12px 4px rgba(60,140,255,0.22);
+      animation:bhDisk2 9s linear infinite reverse;
+    }
+
+    /* Accretion disk 3 — deep purple, slow outer ring */
+    #bh-disk3 {
+      position:absolute; width:272px; height:58px;
+      border-radius:50%; top:50%; left:50%;
+      transform:translate(-50%,-50%) rotateX(64deg) rotateZ(-22deg);
+      box-shadow:0 0 0 1px rgba(190,80,255,0.3),
+                 0 0 16px 6px rgba(150,40,255,0.14);
+      animation:bhDisk3 15s linear infinite;
+    }
+
+    /* The black hole itself */
     #bh-orb {
-      box-shadow: 0 0 0 6px rgba(80,40,120,0.15),
-                  0 0 30px 15px rgba(0,0,0,0.95),
-                  0 0 70px 35px rgba(30,0,60,0.4);
-      animation: bhPulse 3.5s ease-in-out infinite;
-    }
-    #bh-ring {
-      position:absolute; width:160px; height:44px;
+      position:absolute; width:160px; height:160px;
       border-radius:50%; top:50%; left:50%;
-      border:1.5px solid rgba(100,160,255,0.25);
-      box-shadow:0 0 16px rgba(100,160,255,0.12),
-                 inset 0 0 12px rgba(100,160,255,0.06);
-      transform:translate(-50%,-50%) rotateX(72deg);
-      animation:bhSpin 9s linear infinite;
+      transform:translate(-50%,-50%);
+      background:radial-gradient(circle at 38% 35%, #040410 32%, #000 100%);
+      box-shadow:0 0 0 2px rgba(80,40,140,0.35),
+                 0 0 45px 22px rgba(0,0,0,0.99),
+                 0 0 90px 45px rgba(35,0,75,0.55),
+                 0 0 150px 75px rgba(18,0,45,0.32);
+      animation:bhPulse 3.5s ease-in-out infinite;
+      z-index:10;
     }
-    #bh-glow {
-      position:absolute; width:160px; height:44px;
+
+    /* Photon sphere — bright flickering ring right at the event horizon */
+    #bh-horizon {
+      position:absolute; width:164px; height:164px;
       border-radius:50%; top:50%; left:50%;
-      border:1px solid rgba(180,100,255,0.12);
-      transform:translate(-50%,-50%) rotateX(72deg) rotateZ(60deg);
-      animation:bhSpin 14s linear infinite reverse;
+      transform:translate(-50%,-50%);
+      box-shadow:0 0 0 1.5px rgba(255,215,130,0.75),
+                 0 0 10px 4px rgba(255,175,70,0.4),
+                 inset 0 0 0 1px rgba(255,220,150,0.3);
+      animation:bhHorizon 2.2s ease-in-out infinite;
+      z-index:11;
     }
+
+    /* Particle container anchored at BH center */
+    #bh-particles {
+      position:absolute; width:0; height:0;
+      top:50%; left:50%; z-index:6;
+    }
+    .bh-particle {
+      position:absolute; border-radius:50%;
+      transform-origin:0 0;
+      margin:-1px 0 0 -1px;
+    }
+
+    /* Label — always above the glow, solid backdrop */
+    #bh-label {
+      color:rgba(190,205,235,0.92);
+      font:400 13px 'DM Mono',monospace;
+      letter-spacing:.08em; text-align:center;
+      background:rgba(2,2,14,0.85);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border:1px solid rgba(100,120,220,0.18);
+      border-radius:10px;
+      padding:10px 22px;
+      position:relative; z-index:20;
+    }
+    #bh-label span { font-size:10px; opacity:0.58; }
+
+    /* Keyframes */
     @keyframes bhPulse {
-      0%,100%{ box-shadow:0 0 0 6px rgba(80,40,120,0.15),0 0 30px 15px rgba(0,0,0,0.95),0 0 70px 35px rgba(30,0,60,0.4); }
-      50%    { box-shadow:0 0 0 10px rgba(80,40,120,0.2),0 0 50px 25px rgba(0,0,0,0.98),0 0 100px 50px rgba(60,0,100,0.5); }
+      0%,100% { box-shadow:0 0 0 2px rgba(80,40,140,0.35),0 0 45px 22px rgba(0,0,0,0.99),0 0 90px 45px rgba(35,0,75,0.55),0 0 150px 75px rgba(18,0,45,0.32); }
+      50%     { box-shadow:0 0 0 4px rgba(90,45,155,0.45),0 0 65px 32px rgba(0,0,0,1),   0 0 120px 60px rgba(55,0,110,0.65),0 0 200px 100px rgba(25,0,60,0.42); }
     }
-    @keyframes bhSpin {
-      from { transform:translate(-50%,-50%) rotateX(72deg) rotateZ(0deg); }
-      to   { transform:translate(-50%,-50%) rotateX(72deg) rotateZ(360deg); }
+    @keyframes bhHorizon {
+      0%,100% { opacity:1; box-shadow:0 0 0 1.5px rgba(255,215,130,0.75),0 0 10px 4px rgba(255,175,70,0.4),inset 0 0 0 1px rgba(255,220,150,0.3); }
+      35%     { opacity:0.65; box-shadow:0 0 0 1px rgba(255,215,130,0.5),0 0 6px 2px rgba(255,175,70,0.25),inset 0 0 0 1px rgba(255,220,150,0.15); }
+      70%     { opacity:0.85; }
     }
+    @keyframes bhOuterPulse {
+      0%,100% { transform:scale(1);   opacity:0.8; }
+      50%     { transform:scale(1.12); opacity:1; }
+    }
+    @keyframes bhDisk1 {
+      from { transform:translate(-50%,-50%) rotateX(68deg) rotateZ(0deg); }
+      to   { transform:translate(-50%,-50%) rotateX(68deg) rotateZ(360deg); }
+    }
+    @keyframes bhDisk2 {
+      from { transform:translate(-50%,-50%) rotateX(75deg) rotateZ(30deg); }
+      to   { transform:translate(-50%,-50%) rotateX(75deg) rotateZ(390deg); }
+    }
+    @keyframes bhDisk3 {
+      from { transform:translate(-50%,-50%) rotateX(64deg) rotateZ(-22deg); }
+      to   { transform:translate(-50%,-50%) rotateX(64deg) rotateZ(338deg); }
+    }
+    ${particleKF}
   `;
   document.head.appendChild(bhStyles);
+
+  // Spawn spiraling particles into #bh-particles
+  (function spawnParticles() {
+    const container = document.getElementById('bh-particles');
+    if (!container) return;
+    for (let i = 0; i < BH_PARTICLE_COUNT; i++) {
+      const p = document.createElement('div');
+      p.className = 'bh-particle';
+      const sz   = 1.5 + (i % 3) * 0.9;          // 1.5 / 2.4 / 3.3 px
+      const dur  = 2.6 + (i % 5) * 0.55;          // 2.6 – 4.8 s
+      const del  = -((i / BH_PARTICLE_COUNT) * dur); // stagger so they're mid-flight on show
+      const col  = BH_COLORS[i % BH_COLORS.length];
+      p.style.cssText =
+        `width:${sz}px;height:${sz}px;` +
+        `background:${col};` +
+        `box-shadow:0 0 ${sz * 2.5}px ${col};` +
+        `animation:bhSpiral${i} ${dur}s linear ${del}s infinite;`;
+      container.appendChild(p);
+    }
+  })();
 
   const searchNoResults = document.getElementById('search-no-results');
 
