@@ -129,10 +129,14 @@
     quadF.addEventListener('change', () => zoomToQuadrant(quadF.value));
   }
 
-  // Also wire the reset button so it zooms back out
+  // Also wire the reset button so it zooms back out and clears the count toggle
   const resetBtn = document.getElementById('filter-reset');
   if (resetBtn) {
-    resetBtn.addEventListener('click', () => zoomToQuadrant('all'));
+    resetBtn.addEventListener('click', () => {
+      zoomToQuadrant('all');
+      const countCb = document.getElementById('ed-show-count');
+      if (countCb) { countCb.checked = false; updateSubtitleDisplay(); }
+    });
   }
 
   // ── Admin PIN gate ────────────────────────────────────────────────────────
