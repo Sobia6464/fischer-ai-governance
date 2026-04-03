@@ -95,11 +95,11 @@ const soundBtn = document.getElementById('sound-toggle');
 const soundOn = soundBtn.querySelector('.sound-icon-on');
 const soundOff = soundBtn.querySelector('.sound-icon-off');
 
-// Sound is ON by default — show the right icon state
-soundBtn.classList.add('active');
-soundOn.style.display = '';
-soundOff.style.display = 'none';
-soundBtn.title = 'Disable sound';
+// Sound is OFF by default — show the right icon state
+soundBtn.classList.remove('active');
+soundOn.style.display = 'none';
+soundOff.style.display = '';
+soundBtn.title = 'Enable sound';
 
 soundBtn.addEventListener('click', () => {
   ensureAudioContext();

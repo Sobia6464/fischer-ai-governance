@@ -2,7 +2,7 @@
 
 let audioCtx = null;
 let masterGain = null;
-let isMuted = false; // sound ON by default
+let isMuted = true; // sound OFF by default
 
 function ensureAudioContext() {
   if (!audioCtx) {
