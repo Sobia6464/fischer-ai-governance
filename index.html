@@ -61,7 +61,28 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
       Filters
     </button>
+    <button class="hud-btn search-open-btn" id="search-open-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search
+    </button>
     <button class="hud-btn export-btn" id="export-btn">Export PNG</button>
+  </div>
+
+  <!-- Search Panel -->
+  <div class="filter-panel" id="search-panel" style="display:none">
+    <div class="filter-panel-inner">
+      <div class="filter-panel-title">Search</div>
+      <div class="edit-field" style="position:relative">
+        <input type="text" id="search-input" class="edit-input"
+               placeholder="Search tools, notes, gaps&hellip;" autocomplete="off"
+               style="padding-right:32px">
+        <button id="search-clear" aria-label="Clear search"
+                style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);
+                       background:none;border:none;color:rgba(160,175,220,0.5);cursor:pointer;
+                       font-size:16px;line-height:1;padding:0">&times;</button>
+      </div>
+      <div id="search-hint" style="font:400 11px 'DM Mono',monospace;color:rgba(160,175,220,0.45);min-height:14px"></div>
+    </div>
   </div>
 
   <!-- Filter Panel — separate floating panel -->
@@ -296,6 +317,24 @@
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
     </div>
     <div class="hint-text">Click any dot to explore &mdash; use Filters to cut through the noise</div>
+  </div>
+</div>
+
+<!-- Black hole — shown when search returns no results -->
+<div id="search-no-results" style="display:none;position:fixed;top:50%;left:50%;
+     transform:translate(-50%,-50%);display:none;flex-direction:column;
+     align-items:center;gap:20px;pointer-events:none;z-index:90">
+  <div style="position:relative;width:120px;height:120px">
+    <div id="bh-orb" style="width:120px;height:120px;border-radius:50%;
+         background:radial-gradient(circle at 38% 35%,#050510 35%,#000 100%);
+         position:absolute"></div>
+    <div id="bh-ring"></div>
+    <div id="bh-glow"></div>
+  </div>
+  <div style="color:rgba(160,175,220,0.55);font:400 13px 'DM Mono',monospace;
+              letter-spacing:.08em;text-align:center">
+    No results found<br>
+    <span style="font-size:10px;opacity:0.6">Try a shorter or different term</span>
   </div>
 </div>
 

@@ -371,6 +371,38 @@ function getQuadrant(p) {
   return "bl";
 }
 
+function searchScore(p, raw) {
+  const q = raw.toLowerCase().trim();
+  if (!q) return 100;
+
+  // Build a scored, weighted text corpus for this item
+  const label  = (p.label  || '').toLowerCase();
+  const notes  = (p.notes  || '').toLowerCase();
+  const gaps   = (p.gaps   || []).join(' ').toLowerCase();
+  const full   = label + ' ' + notes + ' ' + gaps;
+
+  // Split query into individual tokens for multi-word matching
+  const tokens = q.split(/\s+/).filter(Boolean);
+
+  // 1. Exact label match
+  if (label === q) return 100;
+  // 2. Label starts with query
+  if (label.startsWith(q)) return 92;
+  // 3. Label contains full query
+  if (label.includes(q)) return 85;
+  // 4. All tokens found inside label
+  if (tokens.every(t => label.includes(t))) return 75;
+  // 5. Full query found in notes or gaps
+  if (notes.includes(q) || gaps.includes(q)) return 65;
+  // 6. All tokens found anywhere in full text
+  if (tokens.every(t => full.includes(t))) return 55;
+  // 7. Majority of tokens found in full text (≥ 60%)
+  const matched = tokens.filter(t => full.includes(t));
+  if (matched.length / tokens.length >= 0.6) return 35;
+  // 8. No meaningful match
+  return 0;
+}
+
 function isItemVisible(p, fs) {
   if (p.gov < (fs.governanceMin || 1)) return false;
   if (fs.fischerActiveOnly && !p.active) return false;
@@ -380,6 +412,10 @@ function isItemVisible(p, fs) {
     const isHigh = p.y > 50;
     if (fs.complexityFilter === 'high' && !isHigh) return false;
     if (fs.complexityFilter === 'low' && isHigh) return false;
+  }
+  // Search — minimum score of 35 required to show
+  if (fs.searchTerm && fs.searchTerm.trim()) {
+    if (searchScore(p, fs.searchTerm) < 35) return false;
   }
   return true;
 }

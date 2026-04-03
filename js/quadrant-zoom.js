@@ -122,6 +122,130 @@
     }
   }
 
+  // ── Search ────────────────────────────────────────────────────────────────
+  // Injects searchTerm into the global filterState so it composes with all
+  // existing filters without touching interactions.js.
+
+  // Seed the property so isItemVisible() can always read it safely
+  if (typeof filterState !== 'undefined') filterState.searchTerm = '';
+
+  // Black hole animation styles
+  const bhStyles = document.createElement('style');
+  bhStyles.textContent = `
+    #bh-orb {
+      box-shadow: 0 0 0 6px rgba(80,40,120,0.15),
+                  0 0 30px 15px rgba(0,0,0,0.95),
+                  0 0 70px 35px rgba(30,0,60,0.4);
+      animation: bhPulse 3.5s ease-in-out infinite;
+    }
+    #bh-ring {
+      position:absolute; width:160px; height:44px;
+      border-radius:50%; top:50%; left:50%;
+      border:1.5px solid rgba(100,160,255,0.25);
+      box-shadow:0 0 16px rgba(100,160,255,0.12),
+                 inset 0 0 12px rgba(100,160,255,0.06);
+      transform:translate(-50%,-50%) rotateX(72deg);
+      animation:bhSpin 9s linear infinite;
+    }
+    #bh-glow {
+      position:absolute; width:160px; height:44px;
+      border-radius:50%; top:50%; left:50%;
+      border:1px solid rgba(180,100,255,0.12);
+      transform:translate(-50%,-50%) rotateX(72deg) rotateZ(60deg);
+      animation:bhSpin 14s linear infinite reverse;
+    }
+    @keyframes bhPulse {
+      0%,100%{ box-shadow:0 0 0 6px rgba(80,40,120,0.15),0 0 30px 15px rgba(0,0,0,0.95),0 0 70px 35px rgba(30,0,60,0.4); }
+      50%    { box-shadow:0 0 0 10px rgba(80,40,120,0.2),0 0 50px 25px rgba(0,0,0,0.98),0 0 100px 50px rgba(60,0,100,0.5); }
+    }
+    @keyframes bhSpin {
+      from { transform:translate(-50%,-50%) rotateX(72deg) rotateZ(0deg); }
+      to   { transform:translate(-50%,-50%) rotateX(72deg) rotateZ(360deg); }
+    }
+  `;
+  document.head.appendChild(bhStyles);
+
+  const searchNoResults = document.getElementById('search-no-results');
+
+  function showBlackHole(show) {
+    if (!searchNoResults) return;
+    searchNoResults.style.display = show ? 'flex' : 'none';
+  }
+
+  function applySearch(term) {
+    if (typeof filterState === 'undefined' || typeof applyFilters === 'undefined') return;
+    filterState.searchTerm = term;
+    applyFilters();
+
+    const hint     = document.getElementById('search-hint');
+    const clearBtn = document.getElementById('search-clear');
+    const hasQuery = term.trim().length > 0;
+
+    if (clearBtn) clearBtn.style.display = hasQuery ? '' : 'none';
+
+    if (!hasQuery) {
+      showBlackHole(false);
+      if (hint) hint.textContent = '';
+      return;
+    }
+
+    const visCount = typeof chartInstance !== 'undefined'
+      ? chartInstance.data.datasets.filter(ds => ds._visible).length : 0;
+
+    if (visCount === 0) {
+      showBlackHole(true);
+      if (hint) hint.textContent = '';
+    } else {
+      showBlackHole(false);
+      if (hint) hint.textContent = `${visCount} match${visCount === 1 ? '' : 'es'}`;
+    }
+  }
+
+  // Debounced input handler — feels instant but doesn't thrash on every keystroke
+  let searchDebounce = null;
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => applySearch(searchInput.value), 150);
+    });
+  }
+
+  // Clear button
+  const searchClearBtn = document.getElementById('search-clear');
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      applySearch('');
+      searchInput?.focus();
+    });
+  }
+
+  // Search panel toggle — closes filter/editor panels when opened
+  const searchOpenBtn = document.getElementById('search-open-btn');
+  const searchPanel   = document.getElementById('search-panel');
+  if (searchOpenBtn && searchPanel) {
+    searchOpenBtn.addEventListener('click', () => {
+      const open = searchPanel.style.display !== 'none';
+      if (open) {
+        searchPanel.style.display = 'none';
+        searchOpenBtn.classList.remove('active');
+        // Clear search when closing panel
+        if (searchInput) searchInput.value = '';
+        applySearch('');
+      } else {
+        searchPanel.style.display = '';
+        searchOpenBtn.classList.add('active');
+        // Close other panels
+        document.getElementById('filter-panel').style.display = 'none';
+        document.getElementById('filter-open-btn').classList.remove('active');
+        document.getElementById('editor-panel').style.display = 'none';
+        document.getElementById('edit-mode-btn').classList.remove('active');
+        requestAnimationFrame(() => searchInput?.focus());
+      }
+    });
+  }
+
   // ── Hook into the quadrant filter dropdown ───────────────────────────────
   // The DOM is already loaded (this script runs after </body>), so query directly
   const quadF = document.getElementById('filter-quadrant');
