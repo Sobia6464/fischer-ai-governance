@@ -160,11 +160,13 @@ body {
 }
 
 .hud-title h1 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   line-height: 1.1;
   color: var(--text-bright);
+  text-shadow: 0 0 24px rgba(240, 244, 255, 0.18);
 }
 
 .hud-title-accent {
