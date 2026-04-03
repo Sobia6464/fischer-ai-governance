@@ -122,6 +122,145 @@
     }
   }
 
+  // ── Scroll-wheel Zoom + Drag Pan ─────────────────────────────────────────
+  // Works on top of the quadrant zoom — reads live chart bounds each time.
+  const SZ_MIN_RANGE  = 15;   // tightest zoom: 15-unit window ≈ 6.7× at center
+  const SZ_DATA_LO    = 0;
+  const SZ_DATA_HI    = 100;
+  const SZ_ZOOM_STEP  = 0.12; // 12% range change per wheel notch
+
+  function szGetBounds() {
+    return {
+      xMin: chartInstance.options.scales.x.min,
+      xMax: chartInstance.options.scales.x.max,
+      yMin: chartInstance.options.scales.y.min,
+      yMax: chartInstance.options.scales.y.max,
+    };
+  }
+
+  function szClamp(b) {
+    let { xMin, xMax, yMin, yMax } = b;
+    // Enforce minimum range (max zoom-in)
+    if (xMax - xMin < SZ_MIN_RANGE) { const cx = (xMin+xMax)/2; xMin = cx-SZ_MIN_RANGE/2; xMax = cx+SZ_MIN_RANGE/2; }
+    if (yMax - yMin < SZ_MIN_RANGE) { const cy = (yMin+yMax)/2; yMin = cy-SZ_MIN_RANGE/2; yMax = cy+SZ_MIN_RANGE/2; }
+    // Enforce maximum range (full view)
+    if (xMax - xMin > SZ_DATA_HI - SZ_DATA_LO) { xMin = SZ_DATA_LO; xMax = SZ_DATA_HI; }
+    if (yMax - yMin > SZ_DATA_HI - SZ_DATA_LO) { yMin = SZ_DATA_LO; yMax = SZ_DATA_HI; }
+    // Slide range to stay inside data bounds (don't squash)
+    if (xMin < SZ_DATA_LO) { xMax += SZ_DATA_LO - xMin; xMin = SZ_DATA_LO; }
+    if (xMax > SZ_DATA_HI) { xMin -= xMax - SZ_DATA_HI; xMax = SZ_DATA_HI; }
+    if (yMin < SZ_DATA_LO) { yMax += SZ_DATA_LO - yMin; yMin = SZ_DATA_LO; }
+    if (yMax > SZ_DATA_HI) { yMin -= yMax - SZ_DATA_HI; yMax = SZ_DATA_HI; }
+    return { xMin, xMax, yMin, yMax };
+  }
+
+  function szIsFullOut() {
+    if (!chartInstance) return true;
+    const b = szGetBounds();
+    return (b.xMax - b.xMin) >= (SZ_DATA_HI - SZ_DATA_LO - 0.5);
+  }
+
+  const szCanvas = document.getElementById('chart');
+
+  // ── Wheel: zoom toward cursor ─────────────────────────────────────────────
+  szCanvas.addEventListener('wheel', (e) => {
+    if (!chartInstance) return;
+    e.preventDefault();
+    const b    = szGetBounds();
+    const ca   = chartInstance.chartArea;
+    const rect = szCanvas.getBoundingClientRect();
+    const px   = e.clientX - rect.left;
+    const py   = e.clientY - rect.top;
+    if (px < ca.left || px > ca.right || py < ca.top || py > ca.bottom) return;
+
+    // Fractional position → data coords (Chart.js Y is inverted)
+    const fx = (px - ca.left) / (ca.right  - ca.left);
+    const fy = (py - ca.top)  / (ca.bottom - ca.top);
+    const dX = b.xMin + fx * (b.xMax - b.xMin);
+    const dY = b.yMax - fy * (b.yMax - b.yMin);
+
+    // >1 = zoom out (scroll down), <1 = zoom in (scroll up)
+    const ratio = e.deltaY > 0 ? (1 + SZ_ZOOM_STEP) : (1 - SZ_ZOOM_STEP);
+
+    // Cancel any in-progress quadrant animation so it doesn't fight the scroll
+    if (zoomRafId) { cancelAnimationFrame(zoomRafId); zoomRafId = null; }
+
+    applyBounds(szClamp({
+      xMin: dX - (dX - b.xMin) * ratio,
+      xMax: dX + (b.xMax - dX) * ratio,
+      yMin: dY - (dY - b.yMin) * ratio,
+      yMax: dY + (b.yMax - dY) * ratio,
+    }));
+  }, { passive: false });
+
+  // ── Drag pan ─────────────────────────────────────────────────────────────
+  let szPanActive = false;
+  let szPanStart  = null;   // { x, y } client pixels at drag start
+  let szPanBounds = null;   // chart bounds at drag start
+  let szPanMoved  = false;  // true once movement exceeds dead zone
+
+  szCanvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || !chartInstance || szIsFullOut()) return;
+    const ca   = chartInstance.chartArea;
+    const rect = szCanvas.getBoundingClientRect();
+    const px   = e.clientX - rect.left;
+    const py   = e.clientY - rect.top;
+    if (px < ca.left || px > ca.right || py < ca.top || py > ca.bottom) return;
+    szPanActive = true;
+    szPanMoved  = false;
+    szPanStart  = { x: e.clientX, y: e.clientY };
+    szPanBounds = szGetBounds();
+  }, true); // capture phase — registers before interactions.js sees it
+
+  window.addEventListener('mousemove', (e) => {
+    if (!szPanActive || !chartInstance) return;
+    const dx = e.clientX - szPanStart.x;
+    const dy = e.clientY - szPanStart.y;
+    if (!szPanMoved && Math.hypot(dx, dy) < 5) return; // 5-px dead zone
+    szPanMoved = true;
+    const ca = chartInstance.chartArea;
+    const b  = szPanBounds;
+    const w  = ca.right  - ca.left;
+    const h  = ca.bottom - ca.top;
+    const xShift = -dx / w * (b.xMax - b.xMin);
+    const yShift =  dy / h * (b.yMax - b.yMin); // dy positive = dragged down = data goes up
+    applyBounds(szClamp({
+      xMin: b.xMin + xShift, xMax: b.xMax + xShift,
+      yMin: b.yMin + yShift, yMax: b.yMax + yShift,
+    }));
+    szCanvas.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!szPanActive) return;
+    if (szPanMoved) {
+      // Swallow the click that follows a drag so dot tooltips don't fire
+      szCanvas.addEventListener('click', ev => ev.stopPropagation(), { once: true, capture: true });
+    }
+    szPanActive = false;
+    szPanMoved  = false;
+    szPanStart  = null;
+    szPanBounds = null;
+    if (szCanvas.style.cursor === 'grabbing') szCanvas.style.cursor = '';
+  });
+
+  // Grab-cursor hint when zoomed in (runs after interactions.js so we can
+  // check whether it already set 'pointer' for a hovered dot)
+  szCanvas.addEventListener('mousemove', (e) => {
+    if (szPanActive || szIsFullOut() || !chartInstance) return;
+    const ca   = chartInstance.chartArea;
+    const rect = szCanvas.getBoundingClientRect();
+    const px   = e.clientX - rect.left;
+    const py   = e.clientY - rect.top;
+    if (px >= ca.left && px <= ca.right && py >= ca.top && py <= ca.bottom) {
+      if (szCanvas.style.cursor !== 'pointer' && szCanvas.style.cursor !== 'grabbing') {
+        szCanvas.style.cursor = 'grab';
+      }
+    } else if (szCanvas.style.cursor === 'grab') {
+      szCanvas.style.cursor = '';
+    }
+  });
+
   // ── Search ────────────────────────────────────────────────────────────────
   // Injects searchTerm into the global filterState so it composes with all
   // existing filters without touching interactions.js.
