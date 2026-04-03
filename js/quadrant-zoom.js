@@ -415,16 +415,30 @@
   const LS_DATA_KEY   = 'fischer-gov-data-expanded';
   const LS_LABELS_KEY = 'fischer-gov-labels-expanded';
 
+  // ── Tool count toggle ─────────────────────────────────────────────────────
+  // Keeps the subtitle base text separate from the live count suffix.
+  // Auto-refreshes whenever COMPANIES changes (add/delete/save).
+  function updateSubtitleDisplay() {
+    const accent = document.querySelector('.hud-title-accent');
+    if (!accent) return;
+    const base      = document.getElementById('ed-subtitle')?.value || accent.textContent.replace(/\s*\(\d+\s+tools?\)$/i, '').trim();
+    const showCount = document.getElementById('ed-show-count')?.checked;
+    accent.textContent = showCount ? `${base} (${COMPANIES.length} tools)` : base;
+  }
+
+  document.getElementById('ed-show-count')?.addEventListener('change', updateSubtitleDisplay);
+
   // ── Helpers: read editor inputs ──────────────────────────────────────────
   function readEditorValues() {
     return {
-      title:    document.getElementById('ed-title')?.value    || '',
-      subtitle: document.getElementById('ed-subtitle')?.value || '',
-      pretitle: document.getElementById('ed-pretitle')?.value || '',
-      qlTl:     document.getElementById('ed-ql-tl')?.value    || '',
-      qlTr:     document.getElementById('ed-ql-tr')?.value    || '',
-      qlBl:     document.getElementById('ed-ql-bl')?.value    || '',
-      qlBr:     document.getElementById('ed-ql-br')?.value    || '',
+      title:     document.getElementById('ed-title')?.value    || '',
+      subtitle:  document.getElementById('ed-subtitle')?.value || '',
+      pretitle:  document.getElementById('ed-pretitle')?.value || '',
+      qlTl:      document.getElementById('ed-ql-tl')?.value    || '',
+      qlTr:      document.getElementById('ed-ql-tr')?.value    || '',
+      qlBl:      document.getElementById('ed-ql-bl')?.value    || '',
+      qlBr:      document.getElementById('ed-ql-br')?.value    || '',
+      showCount: document.getElementById('ed-show-count')?.checked || false,
     };
   }
 
@@ -432,9 +446,12 @@
     const h1     = document.querySelector('.hud-title h1');
     const accent = document.querySelector('.hud-title-accent');
     const pre    = document.querySelector('.hud-title-pre');
-    if (h1     && d.title)    h1.textContent     = d.title;
-    if (accent && d.subtitle) accent.textContent = d.subtitle;
-    if (pre    && d.pretitle) pre.textContent    = d.pretitle;
+    if (h1  && d.title)    h1.textContent  = d.title;
+    if (pre && d.pretitle) pre.textContent = d.pretitle;
+    // Subtitle handled via updateSubtitleDisplay so the count stays live
+    const subEl = document.getElementById('ed-subtitle');
+    if (subEl && d.subtitle) subEl.value = d.subtitle;
+    if (accent && d.subtitle) accent.textContent = d.subtitle; // set base first
     document.querySelectorAll('.ql').forEach(ql => {
       const icon = ql.querySelector('.ql-icon')?.outerHTML || '';
       if (ql.classList.contains('tl') && d.qlTl) ql.innerHTML = icon + ' ' + d.qlTl;
@@ -442,10 +459,16 @@
       if (ql.classList.contains('bl') && d.qlBl) ql.innerHTML = icon + ' ' + d.qlBl;
       if (ql.classList.contains('br') && d.qlBr) ql.innerHTML = icon + ' ' + d.qlBr;
     });
+    // Apply count toggle if saved
+    const countEl = document.getElementById('ed-show-count');
+    if (countEl && d.showCount !== undefined) {
+      countEl.checked = d.showCount;
+      updateSubtitleDisplay();
+    }
   }
 
   function applyLabelsToEditor(d) {
-    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     set('ed-title',    d.title);
     set('ed-subtitle', d.subtitle);
     set('ed-pretitle', d.pretitle);
@@ -471,6 +494,7 @@
   window.saveData = function () {
     _origSaveData.call(this);                    // writes to localStorage + toast
     fbPut('companies', COMPANIES);               // also write to Firebase
+    updateSubtitleDisplay();                     // refresh count if shown
   };
 
   // ── Labels save button — write to Firebase + localStorage ────────────────
@@ -480,6 +504,7 @@
       const d = readEditorValues();
       try { localStorage.setItem(LS_LABELS_KEY, JSON.stringify(d)); } catch(e) {}
       fbPut('labels', d);
+      updateSubtitleDisplay(); // re-apply count after text changes
     });
   }
 
