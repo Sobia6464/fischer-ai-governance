@@ -206,6 +206,19 @@ function openDetailPanel(p) {
   gl.innerHTML = p.gaps && p.gaps.length
     ? p.gaps.map(g => `<div class="detail-gap-item"><span class="detail-gap-icon">\u2715</span><span>${g}</span></div>`).join('')
     : `<div class="detail-no-gaps"><span>\u2713</span> Strong IT governance coverage</div>`;
+  // URL — only show if non-empty
+  const urlSection = document.getElementById('detail-url-section');
+  if (urlSection) {
+    const urlVal = (p.url || '').trim();
+    if (urlVal) {
+      urlSection.style.display = '';
+      const link = document.getElementById('detail-url-link');
+      link.href = urlVal;
+      link.textContent = urlVal;
+    } else {
+      urlSection.style.display = 'none';
+    }
+  }
   // Additional notes — only show if non-empty
   const notesEl = document.getElementById('detail-notes-section');
   if (notesEl) {
@@ -345,6 +358,10 @@ function showDotEditor(idx) {
         <textarea class="edit-textarea" id="de-gaps" rows="3">${(p.gaps||[]).join('\n')}</textarea>
       </div>
       <div class="edit-field">
+        <label class="edit-label">Website / Resource URL</label>
+        <input type="url" class="edit-input" id="de-url" placeholder="https://..." value="${p.url||''}">
+      </div>
+      <div class="edit-field">
         <label class="edit-label">Additional Notes</label>
         <textarea class="edit-textarea" id="de-notes" rows="2" placeholder="Optional notes about this tool...">${p.notes||''}</textarea>
       </div>
@@ -373,6 +390,7 @@ function showDotEditor(idx) {
       type: document.getElementById('de-type').value,
       active: document.getElementById('de-active').checked,
       gaps: gapsText ? gapsText.split('\n').map(s=>s.trim()).filter(Boolean) : [],
+      url:   (document.getElementById('de-url').value   || '').trim(),
       notes: (document.getElementById('de-notes').value || '').trim(),
     };
     if (isNew) { COMPANIES.push(data); }

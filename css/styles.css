@@ -1128,6 +1128,21 @@ canvas#chart {
   backdrop-filter: blur(8px);
 }
 
+.detail-url-link {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--active);
+  text-decoration: none;
+  word-break: break-all;
+  margin-top: 4px;
+  display: block;
+  transition: color 0.2s;
+}
+.detail-url-link:hover {
+  color: var(--text-bright);
+  text-decoration: underline;
+}
+
 .detail-notes-text {
   font-family: var(--font-mono);
   font-size: 0.75rem;
