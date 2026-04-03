@@ -697,32 +697,31 @@
     ctx.fillStyle = 'rgba(3,5,22,0.7)';
     ctx.fillRect(0, 0, tw, thdr);
 
-    // Pre-title tag
+    // ── Left column: pre-title → title → subtitle (stacked, mirrors the web page) ──
+    ctx.textAlign = 'left';
+
+    // Pre-title
     ctx.fillStyle = 'rgba(160,175,220,0.5)';
     ctx.font = '400 11px "DM Mono",monospace';
-    ctx.textAlign = 'left';
     ctx.fillText(pretitle, 40, 28);
 
     // Main title
     ctx.fillStyle = '#f0f4ff';
-    ctx.font = '700 32px Syne,sans-serif';
-    ctx.letterSpacing = '1.3px'; // ~0.04em at 32px
+    ctx.font = '700 30px Syne,sans-serif';
+    ctx.letterSpacing = '1.2px';
     ctx.fillText(title, 40, 62);
     ctx.letterSpacing = '0px';
 
-    // Subtitle (accent colour, immediately after title)
-    const titleWidth = ctx.measureText(title + '  ').width;
+    // Subtitle — stacked below title, accent colour
     ctx.fillStyle = '#ff4d6a';
-    ctx.font = '700 32px Syne,sans-serif';
-    ctx.fillText(subtitle, 40 + titleWidth, 62);
+    ctx.font = '700 18px Syne,sans-serif';
+    ctx.fillText(subtitle, 40, 88);
 
-    // Footnote
+    // ── Right column: governance note above date ──────────────────────────────
+    ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(160,175,220,0.45)';
     ctx.font = '400 11px "DM Mono",monospace';
-    ctx.fillText('Governance scored on IT control \u00B7 standardization \u00B7 observability', 40, 96);
-
-    // Date stamp — right-aligned
-    ctx.textAlign = 'right';
+    ctx.fillText('Governance scored on IT control \u00B7 standardization \u00B7 observability', tw - 40, 72);
     ctx.fillText(dateStr, tw - 40, 96);
     ctx.textAlign = 'left';
 
