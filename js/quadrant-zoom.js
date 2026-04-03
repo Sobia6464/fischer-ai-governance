@@ -259,31 +259,34 @@
     }, true /* capture phase */);
   }
 
-  // ── Text label persistence ────────────────────────────────────────────────
-  // interactions.js applies text edits to the DOM but never saves them.
-  // We intercept the save button here and persist to localStorage.
-  const TEXT_KEY = 'fischer-gov-labels-expanded';
+  // ── Firebase sync — source of truth for all edits ────────────────────────
+  // localStorage is used only as an instant-render cache on first paint.
+  // Firebase is always the canonical state — survives cache clears, domain
+  // changes, and different browsers/devices.
+  const FB = 'https://fischer-ai-governance-default-rtdb.firebaseio.com/state/';
+  const LS_DATA_KEY   = 'fischer-gov-data-expanded';
+  const LS_LABELS_KEY = 'fischer-gov-labels-expanded';
 
+  // ── Helpers: read editor inputs ──────────────────────────────────────────
   function readEditorValues() {
     return {
-      title:   document.getElementById('ed-title')?.value    || '',
-      subtitle:document.getElementById('ed-subtitle')?.value || '',
-      pretitle:document.getElementById('ed-pretitle')?.value || '',
-      qlTl:    document.getElementById('ed-ql-tl')?.value    || '',
-      qlTr:    document.getElementById('ed-ql-tr')?.value    || '',
-      qlBl:    document.getElementById('ed-ql-bl')?.value    || '',
-      qlBr:    document.getElementById('ed-ql-br')?.value    || '',
+      title:    document.getElementById('ed-title')?.value    || '',
+      subtitle: document.getElementById('ed-subtitle')?.value || '',
+      pretitle: document.getElementById('ed-pretitle')?.value || '',
+      qlTl:     document.getElementById('ed-ql-tl')?.value    || '',
+      qlTr:     document.getElementById('ed-ql-tr')?.value    || '',
+      qlBl:     document.getElementById('ed-ql-bl')?.value    || '',
+      qlBr:     document.getElementById('ed-ql-br')?.value    || '',
     };
   }
 
   function applyLabelsToDOM(d) {
-    const h1 = document.querySelector('.hud-title h1');
+    const h1     = document.querySelector('.hud-title h1');
     const accent = document.querySelector('.hud-title-accent');
-    const pre = document.querySelector('.hud-title-pre');
-    if (h1 && d.title)       h1.textContent = d.title;
+    const pre    = document.querySelector('.hud-title-pre');
+    if (h1     && d.title)    h1.textContent     = d.title;
     if (accent && d.subtitle) accent.textContent = d.subtitle;
-    if (pre && d.pretitle)   pre.textContent = d.pretitle;
-
+    if (pre    && d.pretitle) pre.textContent    = d.pretitle;
     document.querySelectorAll('.ql').forEach(ql => {
       const icon = ql.querySelector('.ql-icon')?.outerHTML || '';
       if (ql.classList.contains('tl') && d.qlTl) ql.innerHTML = icon + ' ' + d.qlTl;
@@ -295,32 +298,91 @@
 
   function applyLabelsToEditor(d) {
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-    set('ed-title',   d.title);
-    set('ed-subtitle',d.subtitle);
-    set('ed-pretitle',d.pretitle);
-    set('ed-ql-tl',   d.qlTl);
-    set('ed-ql-tr',   d.qlTr);
-    set('ed-ql-bl',   d.qlBl);
-    set('ed-ql-br',   d.qlBr);
+    set('ed-title',    d.title);
+    set('ed-subtitle', d.subtitle);
+    set('ed-pretitle', d.pretitle);
+    set('ed-ql-tl',    d.qlTl);
+    set('ed-ql-tr',    d.qlTr);
+    set('ed-ql-bl',    d.qlBl);
+    set('ed-ql-br',    d.qlBr);
   }
 
-  // Hook the save button — runs AFTER interactions.js already attached its listener,
-  // so the DOM update happens first and we then persist whatever is in the inputs.
+  // ── Firebase write helpers ───────────────────────────────────────────────
+  function fbPut(path, data) {
+    return fetch(FB + path + '.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {}); // silent fail — localStorage still has the data as backup
+  }
+
+  // ── Override saveData (companies) to also write to Firebase ──────────────
+  // saveData is defined in chart-setup-expanded.js; we wrap it here since
+  // quadrant-zoom.js loads last and has access to the global.
+  const _origSaveData = window.saveData;
+  window.saveData = function () {
+    _origSaveData.call(this);                    // writes to localStorage + toast
+    fbPut('companies', COMPANIES);               // also write to Firebase
+  };
+
+  // ── Labels save button — write to Firebase + localStorage ────────────────
   const saveLabelsBtn = document.getElementById('ed-labels-save');
   if (saveLabelsBtn) {
     saveLabelsBtn.addEventListener('click', () => {
       const d = readEditorValues();
-      try { localStorage.setItem(TEXT_KEY, JSON.stringify(d)); } catch(e) {}
+      try { localStorage.setItem(LS_LABELS_KEY, JSON.stringify(d)); } catch(e) {}
+      fbPut('labels', d);
     });
   }
 
-  // Restore saved labels on page load
-  (function restoreLabels() {
-    let d;
-    try { d = JSON.parse(localStorage.getItem(TEXT_KEY)); } catch(e) {}
-    if (!d) return;
-    applyLabelsToDOM(d);
-    applyLabelsToEditor(d);
+  // ── On page load: instant render from localStorage, then sync from Firebase ──
+  // Step 1 — instant render (localStorage cache, zero network delay)
+  (function renderFromCache() {
+    try {
+      const companies = JSON.parse(localStorage.getItem(LS_DATA_KEY));
+      if (companies && Array.isArray(companies)) {
+        COMPANIES.length = 0;
+        companies.forEach(c => COMPANIES.push(c));
+      }
+    } catch(e) {}
+    try {
+      const labels = JSON.parse(localStorage.getItem(LS_LABELS_KEY));
+      if (labels) { applyLabelsToDOM(labels); applyLabelsToEditor(labels); }
+    } catch(e) {}
+  })();
+
+  // Step 2 — authoritative sync from Firebase (overwrites cache if different)
+  (async function syncFromFirebase() {
+    try {
+      const res = await fetch(FB + '../state.json'); // fetch whole state node
+      if (!res.ok) return;
+      const state = await res.json();
+      if (!state) return;
+
+      // Update companies
+      if (state.companies && Array.isArray(state.companies)) {
+        COMPANIES.length = 0;
+        state.companies.forEach(c => COMPANIES.push(c));
+        // Rebuild chart with Firebase data
+        if (typeof rebuildChart === 'function') {
+          rebuildChart();
+        } else if (typeof chartInstance !== 'undefined' && chartInstance) {
+          chartInstance.data.datasets = buildDatasets(getCurrentMode(), getFilterState());
+          chartInstance.update('none');
+        }
+        updateActiveBadge();
+        try { localStorage.setItem(LS_DATA_KEY, JSON.stringify(COMPANIES)); } catch(e) {}
+      }
+
+      // Update labels
+      if (state.labels) {
+        applyLabelsToDOM(state.labels);
+        applyLabelsToEditor(state.labels);
+        try { localStorage.setItem(LS_LABELS_KEY, JSON.stringify(state.labels)); } catch(e) {}
+      }
+    } catch(e) {
+      // Firebase unreachable — localStorage cache already rendered, nothing lost
+    }
   })();
 
 })();
