@@ -44,9 +44,9 @@ function initInteractions(chart, animState) {
   setTimeout(dismissHint, 10000);
 }
 
-/* ─── HUD Overlay Auto-hide + Toggle ─── */
-let hudAutoHideTimer = null;
-var hudManuallyShown = false; // user explicitly toggled — don't auto-hide
+/* ─── HUD Overlay Toggle ─── */
+var hudAutoHideTimer = null; // kept as no-op var so quadrant-zoom.js refs don't throw
+var hudManuallyShown = true; // always true — HUD never auto-hides
 
 function setupOverlayToggle() {
   const overlay = document.getElementById('hud-overlay');
@@ -54,45 +54,29 @@ function setupOverlayToggle() {
   const showIcon = toggleBtn.querySelector('.toggle-icon-show');
   const hideIcon = toggleBtn.querySelector('.toggle-icon-hide');
 
-  // Initial auto-hide after 4s (only on first load)
-  hudAutoHideTimer = setTimeout(hideHud, 4000);
-
-  // Hover keeps HUD visible (only during auto-hide mode, not manual)
-  overlay.addEventListener('mouseenter', () => {
-    if (hudAutoHideTimer && !hudManuallyShown) { clearTimeout(hudAutoHideTimer); hudAutoHideTimer = null; }
-  });
-  overlay.addEventListener('mouseleave', () => {
-    if (hudVisible && !hudManuallyShown) hudAutoHideTimer = setTimeout(hideHud, 3000);
-  });
+  // HUD starts visible — set correct icon state
+  showIcon.style.display = 'none'; hideIcon.style.display = '';
+  toggleBtn.classList.add('hud-visible');
+  toggleBtn.title = 'Hide controls';
 
   toggleBtn.addEventListener('click', () => {
     if (hudVisible) {
-      hideHud();
-      hudManuallyShown = false;
+      overlay.classList.add('hidden');
+      toggleBtn.classList.remove('hud-visible');
+      showIcon.style.display = ''; hideIcon.style.display = 'none';
+      toggleBtn.title = 'Show controls';
+      hudVisible = false;
+      toggleBtn.classList.remove('pulse');
+      void toggleBtn.offsetWidth;
+      toggleBtn.classList.add('pulse');
     } else {
-      showHud();
-      hudManuallyShown = true; // manual toggle — stays until manually dismissed
+      overlay.classList.remove('hidden');
+      toggleBtn.classList.add('hud-visible');
+      showIcon.style.display = 'none'; hideIcon.style.display = '';
+      toggleBtn.title = 'Hide controls';
+      hudVisible = true;
     }
   });
-
-  function hideHud() {
-    if (document.getElementById('editor-panel').style.display !== 'none') return;
-    if (document.getElementById('filter-panel').style.display !== 'none') return;
-    overlay.classList.add('hidden');
-    toggleBtn.classList.remove('hud-visible');
-    showIcon.style.display = ''; hideIcon.style.display = 'none';
-    toggleBtn.title = 'Show controls'; hudVisible = false;
-    toggleBtn.classList.remove('pulse');
-    void toggleBtn.offsetWidth;
-    toggleBtn.classList.add('pulse');
-  }
-  function showHud() {
-    if (hudAutoHideTimer) { clearTimeout(hudAutoHideTimer); hudAutoHideTimer = null; }
-    overlay.classList.remove('hidden');
-    toggleBtn.classList.add('hud-visible');
-    showIcon.style.display = 'none'; hideIcon.style.display = '';
-    toggleBtn.title = 'Hide controls'; hudVisible = true;
-  }
 }
 
 /* ─── Tooltip ─── */

@@ -452,13 +452,6 @@
   document.head.appendChild(pinStyles);
 
   function showPinModal() {
-    // Prevent HUD auto-hide while PIN modal is open — same effect as manual toggle
-    if (typeof hudAutoHideTimer !== 'undefined' && hudAutoHideTimer) {
-      clearTimeout(hudAutoHideTimer);
-      hudAutoHideTimer = null;
-    }
-    if (typeof hudManuallyShown !== 'undefined') hudManuallyShown = true;
-
     return new Promise(resolve => {
       const backdrop = document.createElement('div');
       backdrop.className = 'pin-backdrop';
